@@ -1,0 +1,42 @@
+name: my_app
+description: "A production-style Flutter starter application with GetX, Dio, Retrofit, Flavors, and Material 3."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.8.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  get: ^4.7.3
+  dio: ^5.11.1
+  retrofit: ^4.10.0
+  json_annotation: ^4.12.0
+  equatable: ^2.1.0
+  flutter_dotenv: ^6.0.1
+  flutter_screenutil: ^5.9.3
+  device_info_plus: ^13.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.16.1
+  retrofit_generator: ^10.2.11
+  json_serializable: ^6.14.1
+  flutter_gen_runner: ^5.15.0
+
+flutter_gen:
+  output: lib/gen/
+  line_length: 80
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/env/
+    - assets/images/
+    - assets/icons/
