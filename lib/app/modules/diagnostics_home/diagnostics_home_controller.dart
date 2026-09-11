@@ -1,12 +1,15 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:vibration/vibration.dart';
 import 'package:my_app/app/routes/app_routes.dart';
 import '../../core/localization/app_translations.dart';
 import '../../data/services/device_info_helper.dart';
@@ -50,10 +53,13 @@ class DiagnosticsHomeController extends GetxController {
   final romEvalResult = Rx<EvalResult?>(null);
   final wifiEvalResult = Rx<EvalResult?>(null);
   final btEvalResult = Rx<EvalResult?>(null);
+  final gpsEvalResult = Rx<EvalResult?>(null);
+  final vibrateEvalResult = Rx<EvalResult?>(null);
 
-  // Permissions state
+  // Permissions & Services state
   final hasLocationPermission = false.obs;
   final hasBluetoothPermission = false.obs;
+  final isLocationServiceEnabled = false.obs;
 
   // ==================== DERIVED PROPERTIES ====================
   Map<String, dynamic>? get osModel => info['osmodel'] as Map<String, dynamic>?;
@@ -74,6 +80,8 @@ class DiagnosticsHomeController extends GetxController {
   Map<String, dynamic>? get romInfo => info['rom'] as Map<String, dynamic>?;
   Map<String, dynamic>? get wifiInfo => info['wifi'] as Map<String, dynamic>?;
   Map<String, dynamic>? get bluetoothInfo => info['bt'] as Map<String, dynamic>?;
+  Map<String, dynamic>? get gpsInfo => info['gps'] as Map<String, dynamic>?;
+  Map<String, dynamic>? get vibrateInfo => info['vibrate'] as Map<String, dynamic>?;
 
   String? get wifiSsid => wifiInfo?['ssid'] as String?;
   bool get isWifiConnected => wifiInfo?['connected'] as bool? ?? false;
@@ -82,6 +90,12 @@ class DiagnosticsHomeController extends GetxController {
   bool get isBluetoothEnabled => bluetoothInfo?['enabled'] as bool? ?? false;
   bool get isBluetoothScanOk => bluetoothInfo?['scanOk'] as bool? ?? false;
   int get bluetoothDevicesCount => bluetoothInfo?['devicesCount'] as int? ?? 0;
+
+  double? get gpsAccuracy => (gpsInfo?['accuracyM'] as num?)?.toDouble();
+  bool get isGpsServiceOn => gpsInfo?['serviceOn'] as bool? ?? isLocationServiceEnabled.value;
+
+  bool get isVibrateSupported => vibrateInfo?['supported'] as bool? ?? true;
+  bool get isVibrateConfirmed => vibrateInfo?['userConfirm'] as bool? ?? false;
 
   // ==================== DIAGNOSTIC STEPS ====================
   late final List<DiagStep> diagSteps = [
@@ -100,6 +114,17 @@ class DiagnosticsHomeController extends GetxController {
       title: 'Bluetooth (scan)',
       run: _checkBluetooth,
     ),
+    DiagStep(
+      code: 'gps',
+      title: 'Định vị GPS',
+      run: _snapGps,
+    ),
+    // Dòng 355-361: Khai báo bước kiểm định rung
+    DiagStep(
+      code: 'vibrate',
+      title: 'Rung',
+      run: _testVibration,
+    ),
   ];
 
   @override
@@ -112,7 +137,7 @@ class DiagnosticsHomeController extends GetxController {
   Future<void> runDiagnostics() async {
     isLoading.value = true;
     try {
-      // 1. Dòng 180-195: Cập nhật môi trường & kiểm tra trạng thái cấp/từ chối quyền
+      // 1. Dòng 180-195, 197-201: Cập nhật môi trường & kiểm tra trạng thái cấp/từ chối quyền & Location Service
       await _updateEnvironment();
 
       // 2. Lấy thông tin OS & Model
@@ -135,10 +160,18 @@ class DiagnosticsHomeController extends GetxController {
   // ==================== ENVIRONMENT & PERMISSIONS ====================
 
   /// Dòng 180-195: Kiểm tra trạng thái đã cấp hay từ chối của Permission.bluetoothScan và Permission.location
+  /// Dòng 197-201: Kiểm tra trạng thái dịch vụ định vị (Location Service) đang Bật hay Tắt
   Future<void> _updateEnvironment() async {
     try {
       hasLocationPermission.value = await PermissionPrecheckService.checkWifiPermission();
       hasBluetoothPermission.value = await PermissionPrecheckService.checkBluetoothPermission();
+
+      // Dòng 197-201: Kiểm tra trạng thái dịch vụ định vị (Location Service)
+      bool locationOn = false;
+      try {
+        locationOn = await Geolocator.isLocationServiceEnabled();
+      } catch (_) {}
+      isLocationServiceEnabled.value = locationOn;
     } catch (e) {
       debugPrint('Error updating environment permissions: $e');
     }
@@ -316,6 +349,107 @@ class DiagnosticsHomeController extends GetxController {
         'devicesCount': 0,
         'error': e.toString(),
       };
+    }
+  }
+
+  // ==================== STEP 4: GPS TEST ====================
+
+  Future<bool> _snapGps() async {
+    info['gps'] = await _getLocationAccuracy();
+    if (gpsInfo != null) {
+      gpsEvalResult.value = _ruleEvaluator.evalGps(gpsInfo!);
+    }
+    return true;
+  }
+
+  /// Dòng 984-997: Hàm _getLocationAccuracy() thực hiện kiểm tra và trực tiếp xin quyền runtime qua geolocator
+  Future<Map<String, dynamic>> _getLocationAccuracy() async {
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) {
+        perm = await Geolocator.requestPermission();
+      }
+      final svc = await Geolocator.isLocationServiceEnabled();
+      isLocationServiceEnabled.value = svc;
+
+      double? accuracy;
+      if (svc && (perm == LocationPermission.always || perm == LocationPermission.whileInUse)) {
+        try {
+          final pos = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              timeLimit: Duration(seconds: 5),
+            ),
+          );
+          accuracy = pos.accuracy;
+        } catch (_) {}
+      }
+
+      final data = {
+        'serviceOn': svc,
+        'accuracyM': accuracy,
+        'permission': perm.name,
+      };
+
+      debugPrint('GPS Diagnostic Info: $data');
+      return data;
+    } catch (e) {
+      debugPrint('Error in _getLocationAccuracy: $e');
+      return {
+        'serviceOn': false,
+        'accuracyM': null,
+        'error': e.toString(),
+      };
+    }
+  }
+
+  // ==================== STEP 5: VIBRATION TEST ====================
+
+  /// Dòng 1023-1052: Hàm _testVibration() kiểm tra phần cứng rung và kích hoạt rung ngẫu nhiên (1–3 lần) rồi hỏi người dùng xác nhận
+  Future<bool> _testVibration() async {
+    try {
+      final hasVibrator = (await Vibration.hasVibrator()) == true;
+      if (!hasVibrator) {
+        info['vibrate'] = {'supported': false, 'userConfirm': false};
+        vibrateEvalResult.value = _ruleEvaluator.evalVibration(info['vibrate']!);
+        return false;
+      }
+
+      final vibrationCount = math.Random().nextInt(3) + 1; // Rung ngẫu nhiên 1..3 lần
+      for (var i = 0; i < vibrationCount; i++) {
+        await Vibration.vibrate(duration: 300);
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+
+      final result = await Get.dialog<int>(
+        AlertDialog(
+          title: const Text('Kiểm tra rung'),
+          content: const Text('Máy vừa rung bao nhiêu lần?'),
+          actions: [0, 1, 2, 3]
+              .map((n) => TextButton(
+                    onPressed: () => Get.back(result: n),
+                    child: Text(n == 0 ? 'Không rung' : '$n lần'),
+                  ))
+              .toList(),
+        ),
+        barrierDismissible: false,
+      );
+
+      final isMatched = result == vibrationCount;
+      info['vibrate'] = {
+        'supported': true,
+        'vibrationCount': vibrationCount,
+        'userSelection': result,
+        'userConfirm': isMatched,
+      };
+
+      vibrateEvalResult.value = _ruleEvaluator.evalVibration(info['vibrate']!);
+      debugPrint('Vibration Diagnostic Info: ${info['vibrate']}');
+      return isMatched;
+    } catch (e) {
+      debugPrint('Error in _testVibration: $e');
+      info['vibrate'] = {'supported': false, 'userConfirm': false, 'error': e.toString()};
+      vibrateEvalResult.value = _ruleEvaluator.evalVibration(info['vibrate']!);
+      return false;
     }
   }
 

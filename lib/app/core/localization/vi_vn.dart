@@ -75,5 +75,13 @@ final Map<String, String> viVN = {
   'bluetooth_desc_scanned': 'Hoạt động tốt • Đã quét thấy @count thiết bị xung quanh',
   'bluetooth_desc_disabled': 'Bluetooth hiện đang tắt',
   'bluetooth_desc_no_perm': 'Chưa được cấp quyền quét Bluetooth',
+  'gps_test': 'Định vị GPS',
+  'gps_desc_disabled': 'Dịch vụ định vị GPS hiện đang tắt',
+  'gps_desc_no_accuracy': 'Chưa cấp quyền vị trí hoặc đang dò tín hiệu...',
+  'gps_desc_accuracy': 'Hoạt động tốt • Sai số định vị: ±@accuracym',
+  'vibrate_test': 'Chức năng Rung',
+  'vibrate_desc_unsupported': 'Thiết bị không hỗ trợ mô-tơ rung',
+  'vibrate_desc_pass': 'Phần cứng rung hoạt động tốt (Đã xác nhận)',
+  'vibrate_desc_fail': 'Số lần rung không khớp hoặc chưa kiểm tra',
 };
 

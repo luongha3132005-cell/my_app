@@ -75,5 +75,13 @@ final Map<String, String> enUS = {
   'bluetooth_desc_scanned': 'Active • Discovered @count nearby devices',
   'bluetooth_desc_disabled': 'Bluetooth is currently disabled',
   'bluetooth_desc_no_perm': 'Bluetooth scan permission missing',
+  'gps_test': 'GPS Location',
+  'gps_desc_disabled': 'Location service (GPS) is turned off',
+  'gps_desc_no_accuracy': 'Location permission missing or acquiring signal...',
+  'gps_desc_accuracy': 'Active • Accuracy radius: ±@accuracym',
+  'vibrate_test': 'Vibration Motor',
+  'vibrate_desc_unsupported': 'Vibration motor not detected',
+  'vibrate_desc_pass': 'Vibration motor verified by user',
+  'vibrate_desc_fail': 'Vibration count verification failed',
 };
 

@@ -133,6 +133,40 @@ class DiagnosticsHomePage extends GetView<DiagnosticsHomeController> {
                   ),
                 ),
 
+                // GPS Location Evaluation Card
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
+                  child: buildEvalCard(
+                    title: 'gps_test'.tr,
+                    description: controller.gpsInfo == null
+                        ? 'loading'.tr
+                        : (!controller.isGpsServiceOn
+                            ? 'gps_desc_disabled'.tr
+                            : (controller.gpsAccuracy == null
+                                ? 'gps_desc_no_accuracy'.tr
+                                : 'gps_desc_accuracy'.trParams({'accuracy': controller.gpsAccuracy!.toStringAsFixed(1)}))),
+                    result: controller.gpsEvalResult.value,
+                    icon: Icons.location_on_rounded,
+                  ),
+                ),
+
+                // Vibration Evaluation Card
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
+                  child: buildEvalCard(
+                    title: 'vibrate_test'.tr,
+                    description: controller.vibrateInfo == null
+                        ? 'loading'.tr
+                        : (!controller.isVibrateSupported
+                            ? 'vibrate_desc_unsupported'.tr
+                            : (controller.isVibrateConfirmed
+                                ? 'vibrate_desc_pass'.tr
+                                : 'vibrate_desc_fail'.tr)),
+                    result: controller.vibrateEvalResult.value,
+                    icon: Icons.vibration_rounded,
+                  ),
+                ),
+
                 SizedBox(height: 16.h),
 
                 // 3. Action Button

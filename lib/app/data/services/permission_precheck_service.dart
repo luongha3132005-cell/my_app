@@ -1,13 +1,49 @@
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+/// Thông tin cấu hình quyền cần xin trước khi chẩn đoán
+class PermissionInfo {
+  final Permission permission;
+  final IconData icon;
+  final String name;
+  final String description;
+  final bool required;
+
+  const PermissionInfo({
+    required this.permission,
+    required this.icon,
+    required this.name,
+    required this.description,
+    this.required = false,
+  });
+}
 
 /// Service kiểm tra và tiền cấp quyền (Permissions) cho các tính năng chẩn đoán
 class PermissionPrecheckService {
   PermissionPrecheckService._();
 
   static final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
+
+  /// Danh sách các quyền cần kiểm tra trước khi thực hiện chẩn đoán
+  static const List<PermissionInfo> diagnosticPermissions = [
+    // Dòng 73-78: Khai báo quyền Permission.location trong danh sách quyền kiểm tra trước
+    PermissionInfo(
+      permission: Permission.location,
+      icon: Icons.location_on,
+      name: 'Vị trí',
+      description: 'Kiểm tra GPS và đọc SSID WiFi',
+      required: false,
+    ),
+    PermissionInfo(
+      permission: Permission.bluetoothScan,
+      icon: Icons.bluetooth,
+      name: 'Bluetooth',
+      description: 'Quét và kiểm tra thiết bị Bluetooth xung quanh',
+      required: false,
+    ),
+  ];
 
   // ==================== WI-FI / LOCATION PERMISSIONS ====================
 

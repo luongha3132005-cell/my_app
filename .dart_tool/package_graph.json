@@ -16,11 +16,13 @@
         "flutter_blue_plus",
         "flutter_dotenv",
         "flutter_screenutil",
+        "geolocator",
         "get",
         "json_annotation",
         "network_info_plus",
         "permission_handler",
-        "retrofit"
+        "retrofit",
+        "vibration"
       ],
       "devDependencies": [
         "build_runner",
@@ -138,6 +140,28 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "vibration",
+      "version": "3.2.1",
+      "dependencies": [
+        "flutter",
+        "plugin_platform_interface",
+        "vibration_platform_interface"
+      ]
+    },
+    {
+      "name": "geolocator",
+      "version": "14.0.3",
+      "dependencies": [
+        "flutter",
+        "geolocator_android",
+        "geolocator_apple",
+        "geolocator_linux",
+        "geolocator_platform_interface",
+        "geolocator_web",
+        "geolocator_windows"
       ]
     },
     {
@@ -688,6 +712,80 @@
       ]
     },
     {
+      "name": "vibration_platform_interface",
+      "version": "0.1.2",
+      "dependencies": [
+        "device_info_plus",
+        "flutter",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "plugin_platform_interface",
+      "version": "2.1.8",
+      "dependencies": [
+        "meta"
+      ]
+    },
+    {
+      "name": "geolocator_linux",
+      "version": "0.2.6",
+      "dependencies": [
+        "dbus",
+        "flutter",
+        "geoclue",
+        "geolocator_platform_interface",
+        "gsettings",
+        "package_info_plus"
+      ]
+    },
+    {
+      "name": "geolocator_windows",
+      "version": "0.2.5",
+      "dependencies": [
+        "flutter",
+        "geolocator_platform_interface"
+      ]
+    },
+    {
+      "name": "geolocator_web",
+      "version": "4.1.4",
+      "dependencies": [
+        "flutter",
+        "flutter_web_plugins",
+        "geolocator_platform_interface",
+        "web"
+      ]
+    },
+    {
+      "name": "geolocator_apple",
+      "version": "2.3.14",
+      "dependencies": [
+        "flutter",
+        "geolocator_platform_interface"
+      ]
+    },
+    {
+      "name": "geolocator_android",
+      "version": "5.0.3",
+      "dependencies": [
+        "flutter",
+        "geolocator_platform_interface",
+        "meta",
+        "uuid"
+      ]
+    },
+    {
+      "name": "geolocator_platform_interface",
+      "version": "4.3.0",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "plugin_platform_interface",
+        "vector_math"
+      ]
+    },
+    {
       "name": "flutter_blue_plus_winrt",
       "version": "0.0.20",
       "dependencies": [
@@ -1044,17 +1142,35 @@
       ]
     },
     {
-      "name": "bluez",
-      "version": "0.8.3",
+      "name": "package_info_plus",
+      "version": "10.2.1",
       "dependencies": [
-        "dbus"
+        "clock",
+        "ffi",
+        "flutter",
+        "flutter_web_plugins",
+        "http",
+        "meta",
+        "package_info_plus_platform_interface",
+        "path",
+        "web",
+        "win32"
       ]
     },
     {
-      "name": "ffi_leak_tracker",
-      "version": "0.1.2",
+      "name": "gsettings",
+      "version": "0.2.8",
       "dependencies": [
-        "ffi"
+        "dbus",
+        "xdg_directories"
+      ]
+    },
+    {
+      "name": "geoclue",
+      "version": "0.1.1",
+      "dependencies": [
+        "dbus",
+        "meta"
       ]
     },
     {
@@ -1068,10 +1184,25 @@
       ]
     },
     {
-      "name": "plugin_platform_interface",
-      "version": "2.1.8",
+      "name": "uuid",
+      "version": "4.6.0",
       "dependencies": [
-        "meta"
+        "crypto",
+        "fixnum"
+      ]
+    },
+    {
+      "name": "bluez",
+      "version": "0.8.3",
+      "dependencies": [
+        "dbus"
+      ]
+    },
+    {
+      "name": "ffi_leak_tracker",
+      "version": "0.1.2",
+      "dependencies": [
+        "ffi"
       ]
     },
     {
@@ -1120,6 +1251,33 @@
       "name": "vm_service",
       "version": "15.3.0",
       "dependencies": []
+    },
+    {
+      "name": "package_info_plus_platform_interface",
+      "version": "4.1.0",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "http",
+      "version": "1.6.0",
+      "dependencies": [
+        "async",
+        "http_parser",
+        "meta",
+        "web"
+      ]
+    },
+    {
+      "name": "xdg_directories",
+      "version": "1.1.0",
+      "dependencies": [
+        "meta",
+        "path"
+      ]
     }
   ],
   "configVersion": 1

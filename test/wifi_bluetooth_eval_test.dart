@@ -111,4 +111,64 @@ void main() {
       expect(ProfileManager.isMiuiOrXiaomi('Samsung'), isFalse);
     });
   });
+
+  group('RuleEvaluator - GPS Evaluation Tests', () {
+    test('GPS service disabled should return SKIP', () {
+      final result = evaluator.evalGps({
+        'serviceOn': false,
+        'accuracyM': null,
+      });
+      expect(result, EvalResult.skip);
+    });
+
+    test('GPS service enabled but no accuracy should return SKIP', () {
+      final result = evaluator.evalGps({
+        'serviceOn': true,
+        'accuracyM': null,
+      });
+      expect(result, EvalResult.skip);
+    });
+
+    test('GPS accuracy <= 50m should return PASS', () {
+      final result = evaluator.evalGps({
+        'serviceOn': true,
+        'accuracyM': 12.5,
+      });
+      expect(result, EvalResult.pass);
+    });
+
+    test('GPS accuracy > 50m should return FAIL', () {
+      final result = evaluator.evalGps({
+        'serviceOn': true,
+        'accuracyM': 68.0,
+      });
+      expect(result, EvalResult.fail);
+    });
+  });
+
+  group('RuleEvaluator - Vibration Evaluation Tests', () {
+    test('Vibrator not supported should return SKIP', () {
+      final result = evaluator.evalVibration({
+        'supported': false,
+        'userConfirm': false,
+      });
+      expect(result, EvalResult.skip);
+    });
+
+    test('Vibrator confirmed by user should return PASS', () {
+      final result = evaluator.evalVibration({
+        'supported': true,
+        'userConfirm': true,
+      });
+      expect(result, EvalResult.pass);
+    });
+
+    test('Vibrator not confirmed by user should return FAIL', () {
+      final result = evaluator.evalVibration({
+        'supported': true,
+        'userConfirm': false,
+      });
+      expect(result, EvalResult.fail);
+    });
+  });
 }

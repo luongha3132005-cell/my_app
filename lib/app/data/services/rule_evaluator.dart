@@ -27,6 +27,11 @@ class RuleEvaluator {
       case 'bt':
       case 'bluetooth':
         return _evalBluetooth(payload);
+      case 'gps':
+        return _evalGps(payload);
+      case 'vibrate':
+      case 'vibration':
+        return _evalVibration(payload);
       default:
         return EvalResult.skip;
     }
@@ -43,6 +48,12 @@ class RuleEvaluator {
 
   /// Public wrapper đánh giá Bluetooth
   EvalResult evalBluetooth(Map<String, dynamic> payload) => _evalBluetooth(payload);
+
+  /// Public wrapper đánh giá GPS
+  EvalResult evalGps(Map<String, dynamic> payload) => _evalGps(payload);
+
+  /// Public wrapper đánh giá Rung
+  EvalResult evalVibration(Map<String, dynamic> payload) => _evalVibration(payload);
 
   /// Đánh giá RAM
   /// - iOS: Có thể là estimated value -> vẫn PASS
@@ -150,6 +161,46 @@ class RuleEvaluator {
 
     // Kiểm tra scanOk để trả về pass hoặc fail
     if (scanOk) {
+      return EvalResult.pass;
+    }
+
+    return EvalResult.fail;
+  }
+
+  /// Đánh giá GPS (dòng 441-454)
+  /// - serviceOn: Dịch vụ định vị GPS có đang bật hay không
+  /// - accuracyM: Sai số vị trí tính bằng mét
+  EvalResult _evalGps(Map<String, dynamic> p) {
+    final serviceOn = p['serviceOn'] as bool? ?? false;
+    final accuracyM = (p['accuracyM'] as num?)?.toDouble();
+
+    // Nếu GPS bị tắt hoặc thiếu quyền vị trí thì trả về skip
+    if (!serviceOn || accuracyM == null) {
+      return EvalResult.skip;
+    }
+
+    // Nếu đo được độ lệch vị trí (sai số mét) <= 50m thì trả về pass, ngược lại fail
+    if (accuracyM <= 50) {
+      return EvalResult.pass;
+    }
+
+    return EvalResult.fail;
+  }
+
+  /// Đánh giá chức năng Rung (dòng 485-488)
+  /// - supported: Thiết bị có hỗ trợ mô-tơ rung hay không
+  /// - userConfirm: Người dùng chọn đúng số lần máy đã rung
+  EvalResult _evalVibration(Map<String, dynamic> p) {
+    final supported = p['supported'] as bool? ?? false;
+    final userConfirm = p['userConfirm'] as bool? ?? false;
+
+    // Nếu không hỗ trợ rung
+    if (!supported) {
+      return EvalResult.skip;
+    }
+
+    // Trả về pass nếu người dùng chọn đúng số lần máy đã rung (userConfirm == true)
+    if (userConfirm) {
       return EvalResult.pass;
     }
 
