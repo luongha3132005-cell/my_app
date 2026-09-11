@@ -67,5 +67,13 @@ final Map<String, String> enUS = {
   'diagnostics_title': 'Device Diagnostics',
   'hardware_evaluation': 'Hardware Standard Evaluation',
   'recheck_specs': 'Re-measure & Evaluate',
+  'wifi_test': 'Wi-Fi Connection',
+  'wifi_desc_connected': 'Connected: @ssid',
+  'wifi_desc_disconnected': 'Wi-Fi is enabled but not connected to network',
+  'wifi_desc_disabled': 'Wi-Fi is currently disabled',
+  'bluetooth_test': 'Bluetooth Adapter & Scan',
+  'bluetooth_desc_scanned': 'Active • Discovered @count nearby devices',
+  'bluetooth_desc_disabled': 'Bluetooth is currently disabled',
+  'bluetooth_desc_no_perm': 'Bluetooth scan permission missing',
 };
 

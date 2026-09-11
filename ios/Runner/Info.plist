@@ -66,5 +66,13 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Bluetooth Permissions for diagnostics -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Ứng dụng cần quyền Bluetooth để kiểm định chức năng kết nối thiết bị.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Ứng dụng cần quyền Bluetooth để kiểm định chức năng kết nối thiết bị.</string>
+	<!-- Location Permission to read connected Wi-Fi SSID -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Ứng dụng cần quyền vị trí để kiểm tra trạng thái và nhận diện tên mạng Wi-Fi (SSID).</string>
 </dict>
 </plist>

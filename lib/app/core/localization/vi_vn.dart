@@ -67,5 +67,13 @@ final Map<String, String> viVN = {
   'diagnostics_title': 'Kiểm định thiết bị',
   'hardware_evaluation': 'Đánh giá tiêu chuẩn phần cứng',
   'recheck_specs': 'Đo lại thông số máy',
+  'wifi_test': 'Kết nối Wi-Fi',
+  'wifi_desc_connected': 'Đã kết nối: @ssid',
+  'wifi_desc_disconnected': 'Wi-Fi đang bật nhưng chưa kết nối mạng',
+  'wifi_desc_disabled': 'Wi-Fi hiện đang tắt',
+  'bluetooth_test': 'Kiểm tra Bluetooth & Quét thiết bị',
+  'bluetooth_desc_scanned': 'Hoạt động tốt • Đã quét thấy @count thiết bị xung quanh',
+  'bluetooth_desc_disabled': 'Bluetooth hiện đang tắt',
+  'bluetooth_desc_no_perm': 'Chưa được cấp quyền quét Bluetooth',
 };
 

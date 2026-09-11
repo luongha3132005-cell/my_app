@@ -1,11 +1,35 @@
 import 'dart:io';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:get/get.dart';
+import 'package:network_info_plus/network_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:my_app/app/routes/app_routes.dart';
+import '../../core/localization/app_translations.dart';
 import '../../data/services/device_info_helper.dart';
 import '../../data/services/device_name_mapper.dart';
+import '../../data/services/permission_precheck_service.dart';
+import '../../data/services/profile_manager.dart';
 import '../../data/services/rule_evaluator.dart';
 import 'diagnostics_home_repository.dart';
+
+const _channel = MethodChannel('com.fidobox/diagnostics');
+
+/// Đại diện cho một bước kiểm tra trong quy trình chẩn đoán thiết bị
+class DiagStep {
+  final String code;
+  final String title;
+  final Future<void> Function() run;
+
+  DiagStep({
+    required this.code,
+    required this.title,
+    required this.run,
+  });
+}
 
 /// DiagnosticsHomeController - Điều phối thu thập và chẩn đoán thông số phần cứng thiết bị
 class DiagnosticsHomeController extends GetxController {
@@ -18,9 +42,18 @@ class DiagnosticsHomeController extends GetxController {
 
   // ==================== REACTIVE STATE ====================
   final isLoading = false.obs;
+  final currentStepTitle = ''.obs;
   final info = <String, dynamic>{}.obs;
+
+  // Evaluation results
   final ramEvalResult = Rx<EvalResult?>(null);
   final romEvalResult = Rx<EvalResult?>(null);
+  final wifiEvalResult = Rx<EvalResult?>(null);
+  final btEvalResult = Rx<EvalResult?>(null);
+
+  // Permissions state
+  final hasLocationPermission = false.obs;
+  final hasBluetoothPermission = false.obs;
 
   // ==================== DERIVED PROPERTIES ====================
   Map<String, dynamic>? get osModel => info['osmodel'] as Map<String, dynamic>?;
@@ -39,6 +72,35 @@ class DiagnosticsHomeController extends GetxController {
 
   Map<String, dynamic>? get ramInfo => info['ram'] as Map<String, dynamic>?;
   Map<String, dynamic>? get romInfo => info['rom'] as Map<String, dynamic>?;
+  Map<String, dynamic>? get wifiInfo => info['wifi'] as Map<String, dynamic>?;
+  Map<String, dynamic>? get bluetoothInfo => info['bt'] as Map<String, dynamic>?;
+
+  String? get wifiSsid => wifiInfo?['ssid'] as String?;
+  bool get isWifiConnected => wifiInfo?['connected'] as bool? ?? false;
+  bool get isWifiEnabled => wifiInfo?['enabled'] as bool? ?? false;
+
+  bool get isBluetoothEnabled => bluetoothInfo?['enabled'] as bool? ?? false;
+  bool get isBluetoothScanOk => bluetoothInfo?['scanOk'] as bool? ?? false;
+  int get bluetoothDevicesCount => bluetoothInfo?['devicesCount'] as int? ?? 0;
+
+  // ==================== DIAGNOSTIC STEPS ====================
+  late final List<DiagStep> diagSteps = [
+    DiagStep(
+      code: 'ram_rom',
+      title: 'RAM & ROM',
+      run: _snapRamRom,
+    ),
+    DiagStep(
+      code: 'wifi',
+      title: 'Wi-Fi (SSID)',
+      run: _snapWifi,
+    ),
+    DiagStep(
+      code: 'bt',
+      title: 'Bluetooth (scan)',
+      run: _checkBluetooth,
+    ),
+  ];
 
   @override
   void onInit() {
@@ -50,61 +112,247 @@ class DiagnosticsHomeController extends GetxController {
   Future<void> runDiagnostics() async {
     isLoading.value = true;
     try {
-      // 1. Lấy thông tin OS & Model
+      // 1. Dòng 180-195: Cập nhật môi trường & kiểm tra trạng thái cấp/từ chối quyền
+      await _updateEnvironment();
+
+      // 2. Lấy thông tin OS & Model
       final osData = await _getOsAndModel();
       info['osmodel'] = osData;
 
-      // 2. Chụp thông số RAM & ROM
-      await _snapRam();
-      await _snapRom();
-
-      // 3. Đánh giá chất lượng RAM & ROM qua RuleEvaluator
-      if (ramInfo != null) {
-        ramEvalResult.value = _ruleEvaluator.evalRam(ramInfo!);
-      }
-      if (romInfo != null) {
-        romEvalResult.value = _ruleEvaluator.evalRom(romInfo!);
+      // 3. Thực thi từng DiagStep
+      for (final step in diagSteps) {
+        currentStepTitle.value = step.title;
+        await step.run();
       }
     } catch (e) {
       debugPrint('Error running diagnostics: $e');
     } finally {
       isLoading.value = false;
+      currentStepTitle.value = '';
+    }
+  }
+
+  // ==================== ENVIRONMENT & PERMISSIONS ====================
+
+  /// Dòng 180-195: Kiểm tra trạng thái đã cấp hay từ chối của Permission.bluetoothScan và Permission.location
+  Future<void> _updateEnvironment() async {
+    try {
+      hasLocationPermission.value = await PermissionPrecheckService.checkWifiPermission();
+      hasBluetoothPermission.value = await PermissionPrecheckService.checkBluetoothPermission();
+    } catch (e) {
+      debugPrint('Error updating environment permissions: $e');
+    }
+  }
+
+  // ==================== STEP 1: RAM & ROM ====================
+
+  Future<void> _snapRamRom() async {
+    await _snapRam();
+    await _snapRom();
+
+    if (ramInfo != null) {
+      ramEvalResult.value = _ruleEvaluator.evalRam(ramInfo!);
+    }
+    if (romInfo != null) {
+      romEvalResult.value = _ruleEvaluator.evalRom(romInfo!);
+    }
+  }
+
+  // ==================== STEP 2: WI-FI TEST ====================
+
+  /// Dòng 744-748: Hàm thực thi _snapWifi() gọi _getWifiInfo()
+  Future<bool> _snapWifi() async {
+    info['wifi'] = await _getWifiInfo();
+    if (wifiInfo != null) {
+      wifiEvalResult.value = _ruleEvaluator.evalWifi(wifiInfo!);
+    }
+    return true;
+  }
+
+  /// Dòng 907-920: Logic chi tiết đo và kiểm định Wi-Fi
+  Future<Map<String, dynamic>> _getWifiInfo() async {
+    try {
+      // 1. Gọi native MethodChannel _invoke<bool>('isWifiEnabled') để xem Wi-Fi có bật không
+      bool isEnabled = false;
+      if (Platform.isAndroid) {
+        try {
+          isEnabled = await _channel.invokeMethod<bool>('isWifiEnabled') ?? false;
+        } catch (_) {
+          isEnabled = true; // Fallback
+        }
+      } else {
+        isEnabled = true; // Fallback trên iOS
+      }
+
+      // 2. Dùng package connectivity_plus kiểm tra xem thiết bị có đang kết nối Wi-Fi hay không
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final isConnected = connectivityResult.contains(ConnectivityResult.wifi);
+
+      if (isConnected) {
+        isEnabled = true;
+      }
+
+      // 3. Dòng 914-916: Trực tiếp gọi await Permission.locationWhenInUse.request() trước khi đọc SSID
+      String? ssid;
+      bool hasLocation = await Permission.locationWhenInUse.isGranted;
+      if (!hasLocation) {
+        final reqStatus = await Permission.locationWhenInUse.request();
+        hasLocation = reqStatus.isGranted;
+      }
+      hasLocationPermission.value = hasLocation;
+
+      // Đọc SSID qua NetworkInfo().getWifiName()
+      if (isConnected) {
+        try {
+          final rawSsid = await NetworkInfo().getWifiName();
+          if (rawSsid != null) {
+            ssid = rawSsid.replaceAll('"', '').trim();
+          }
+        } catch (e) {
+          debugPrint('Error getting Wi-Fi SSID: $e');
+        }
+      }
+
+      final data = {
+        'enabled': isEnabled,
+        'connected': isConnected,
+        'ssid': ssid,
+        'hasLocationPermission': hasLocation,
+        'requiresLocationStrict': ProfileManager.requiresLocationForWifi(brand),
+      };
+
+      debugPrint('Wi-Fi Diagnostic Info: $data');
+      return data;
+    } catch (e) {
+      debugPrint('Error in _getWifiInfo: $e');
+      return {
+        'enabled': false,
+        'connected': false,
+        'ssid': null,
+        'error': e.toString(),
+      };
+    }
+  }
+
+  // ==================== STEP 3: BLUETOOTH TEST ====================
+
+  /// Dòng 760-763: Hàm thực thi _checkBluetooth() gọi _getBluetoothInfo()
+  Future<bool> _checkBluetooth() async {
+    info['bt'] = await _getBluetoothInfo();
+    if (bluetoothInfo != null) {
+      btEvalResult.value = _ruleEvaluator.evalBluetooth(bluetoothInfo!);
+    }
+    return true;
+  }
+
+  /// Dòng 938-955: Logic chi tiết đo và quét Bluetooth
+  Future<Map<String, dynamic>> _getBluetoothInfo() async {
+    try {
+      // 1. Tiền kiểm tra và xin quyền Bluetooth
+      final hasPermission = await PermissionPrecheckService.requestBluetoothPermission();
+      hasBluetoothPermission.value = hasPermission;
+
+      // 2. Dùng package flutter_blue_plus kiểm tra adapter Bluetooth có bật không
+      bool isEnabled = false;
+      try {
+        isEnabled = await FlutterBluePlus.adapterState.first.then(
+          (s) => s == BluetoothAdapterState.on,
+        ).timeout(
+          const Duration(milliseconds: 1500),
+          onTimeout: () => FlutterBluePlus.adapterStateNow == BluetoothAdapterState.on,
+        );
+      } catch (_) {
+        isEnabled = FlutterBluePlus.adapterStateNow == BluetoothAdapterState.on;
+      }
+
+      if (!isEnabled) {
+        return {
+          'enabled': false,
+          'scanOk': false,
+          'hasScanPermission': hasPermission,
+          'devicesCount': 0,
+        };
+      }
+
+      // 3. Chạy hàm quét thực tế trong 2 giây: startScan -> delayed(2s) -> stopScan
+      bool scanOk = false;
+      int devicesCount = 0;
+
+      if (hasPermission && isEnabled) {
+        try {
+          final subscription = FlutterBluePlus.scanResults.listen((results) {
+            devicesCount = results.length;
+          });
+
+          await FlutterBluePlus.startScan(timeout: const Duration(seconds: 2));
+          await Future.delayed(const Duration(seconds: 2));
+          await FlutterBluePlus.stopScan();
+          await subscription.cancel();
+          scanOk = true;
+        } catch (e) {
+          debugPrint('Error during Bluetooth scan: $e');
+          scanOk = false;
+        }
+      }
+
+      final isMiui = ProfileManager.isMiuiOrXiaomi(brand);
+
+      final data = {
+        'enabled': isEnabled,
+        'scanOk': scanOk,
+        'hasScanPermission': hasPermission,
+        'devicesCount': devicesCount,
+        'isMiui': isMiui,
+      };
+
+      debugPrint('Bluetooth Diagnostic Info: $data');
+      return data;
+    } catch (e) {
+      debugPrint('Error in _getBluetoothInfo: $e');
+      return {
+        'enabled': false,
+        'scanOk': false,
+        'hasScanPermission': false,
+        'devicesCount': 0,
+        'error': e.toString(),
+      };
     }
   }
 
   // ==================== OS & MODEL ====================
 
-  /// Lấy phiên bản hệ điều hành (Android SDK/release hoặc iOS systemVersion), nhà sản xuất, xuất xứ...
+  /// Lấy phiên bản hệ điều hành, nhà sản xuất, xuất xứ...
   Future<Map<String, dynamic>> _getOsAndModel() async {
     try {
       if (Platform.isAndroid) {
         final a = await _deviceInfo.androidInfo;
         final vendor = a.manufacturer.toLowerCase();
-        // final origin = _getOriginCountry(a.brand, a.manufacturer);
         final marketingName = DeviceNameMapper.getMarketingName(
           a.model,
           a.brand,
         );
 
-        return {
+        final data = {
           'platform': 'android',
           'sdk': a.version.sdkInt,
           'release': a.version.release,
           'model': a.model,
-          'marketingName': marketingName,
           'brand': a.brand,
           'manufacturer': a.manufacturer,
           'vendor': vendor,
-          //    'origin': origin,
-          'isSamsung': vendor == 'samsung',
-          'isApple': false,
+          'marketingName': marketingName,
+          'ram': ramInfo,
+          'rom': romInfo,
         };
+
+        debugPrint('Android Device Info: $data');
+        return data;
       } else if (Platform.isIOS) {
         final i = await _deviceInfo.iosInfo;
         final machine = i.utsname.machine;
         final friendlyName = await DeviceInfoHelper.getModel();
 
-        return {
+        final data = {
           'platform': 'ios',
           'systemVersion': i.systemVersion,
           'model': machine,
@@ -113,10 +361,12 @@ class DiagnosticsHomeController extends GetxController {
           'brand': 'Apple',
           'manufacturer': 'Apple',
           'vendor': 'apple',
-          //  'origin': 'Mỹ',
           'isSamsung': false,
           'isApple': true,
         };
+
+        debugPrint('iOS Device Info: $data');
+        return data;
       }
 
       return {'platform': 'unknown', 'origin': 'Không xác định'};
@@ -126,37 +376,8 @@ class DiagnosticsHomeController extends GetxController {
     }
   }
 
-  /// Xác định quốc gia xuất xứ dựa trên thương hiệu và nhà sản xuất
-  // String _getOriginCountry(String brand, String manufacturer) {
-  //   final b = brand.toLowerCase();
-  //   final m = manufacturer.toLowerCase();
-  //   bool has(String s) => b.contains(s) || m.contains(s);
+  // ==================== RAM & ROM HELPERS ====================
 
-  //   if (has('samsung') || has('lg')) return 'Hàn Quốc';
-  //   if (has('xiaomi') ||
-  //       has('oppo') ||
-  //       has('vivo') ||
-  //       sm-a365n
-  //       has('huawei') ||
-  //       has('oneplus') ||
-  //       has('realme') ||
-  //       has('honor') ||
-  //       has('zte') ||
-  //       has('lenovo') ||
-  //       has('meizu') ||
-  //       has('tcl')) {
-  //     return 'Trung Quốc';
-  //   }
-  //   if (has('apple') || has('google') || has('motorola')) return 'Mỹ';
-  //   if (has('sony') || has('sharp') || has('fujitsu')) return 'Nhật Bản';
-  //   if (has('asus') || has('htc') || has('acer')) return 'Đài Loan';
-  //   if (has('nokia')) return 'Phần Lan';
-  //   return 'Không xác định';
-  // }
-
-  // ==================== RAM & ROM ====================
-
-  /// Lấy thông tin chi tiết RAM
   Future<Map<String, dynamic>> _getRamInfo() async {
     try {
       return await DeviceInfoHelper.getRamInfo();
@@ -165,7 +386,6 @@ class DiagnosticsHomeController extends GetxController {
     }
   }
 
-  /// Lấy thông tin chi tiết ROM (Bộ nhớ trong)
   Future<Map<String, dynamic>> _getRomInfo() async {
     try {
       return await DeviceInfoHelper.getRomInfo();
@@ -174,15 +394,35 @@ class DiagnosticsHomeController extends GetxController {
     }
   }
 
-  /// Thực hiện chụp/đo thông số RAM
   Future<bool> _snapRam() async {
     info['ram'] = await _getRamInfo();
     return true;
   }
 
-  /// Thực hiện chụp/đo thông số ROM
   Future<bool> _snapRom() async {
     info['rom'] = await _getRomInfo();
     return true;
+  }
+
+  // ==================== UTILS ====================
+
+  /// Chuyển đổi ngôn ngữ ứng dụng (Tiếng Việt <-> Tiếng Anh)
+  void toggleLanguage() {
+    final currentLocale = Get.locale;
+    if (currentLocale?.languageCode == 'vi') {
+      Get.updateLocale(AppTranslations.enLocale);
+    } else {
+      Get.updateLocale(AppTranslations.viLocale);
+    }
+  }
+
+  /// Chuyển đổi chế độ giao diện Sáng / Tối
+  void toggleTheme() {
+    Get.changeThemeMode(Get.isDarkMode ? ThemeMode.light : ThemeMode.dark);
+  }
+
+  /// Chuyển đến màn hình kiểm tra chức năng
+  void goTofuntionCheck() {
+    Get.toNamed(AppRoutes.functionCheck);
   }
 }

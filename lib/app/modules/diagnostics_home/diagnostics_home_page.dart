@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_style.dart';
-import '../../data/services/rule_evaluator.dart';
+import '../../core/widgets/build_eval_card.dart';
 import 'diagnostics_home_controller.dart';
 import 'widgets/device_info_section.dart';
 
@@ -17,15 +17,14 @@ class DiagnosticsHomePage extends GetView<DiagnosticsHomeController> {
       appBar: AppBar(
         title: Text(
           'diagnostics_title'.tr,
-          style: AppTextStyle.titleLarge.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: AppTextStyle.titleLarge.copyWith(fontWeight: FontWeight.bold),
         ),
         actions: [
+          // Language switcher button
           IconButton(
-            tooltip: 'refresh'.tr,
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: controller.runDiagnostics,
+            tooltip: 'language'.tr,
+            icon: Icon(Icons.language, size: 24.r),
+            onPressed: controller.toggleLanguage,
           ),
         ],
       ),
@@ -38,8 +37,8 @@ class DiagnosticsHomePage extends GetView<DiagnosticsHomeController> {
           final osVer = controller.isAndroid
               ? 'Android ${controller.osModel?['release'] ?? ''}'
               : (controller.isIOS
-                  ? 'iOS ${controller.osModel?['systemVersion'] ?? ''}'
-                  : controller.platform);
+                    ? 'iOS ${controller.osModel?['systemVersion'] ?? ''}'
+                    : controller.platform);
 
           return RefreshIndicator(
             onRefresh: controller.runDiagnostics,
@@ -59,44 +58,82 @@ class DiagnosticsHomePage extends GetView<DiagnosticsHomeController> {
                   marketingName: controller.marketingName,
                 ),
 
-                SizedBox(height: 12.h),
+                SizedBox(height: 8.h),
 
-                // 2. Hardware Tests Status Card
+                // 2. Hardware Evaluation Section Title
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'hardware_evaluation'.tr,
-                        style: AppTextStyle.titleMedium.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 12.h),
-
-                      // RAM Test Card
-                      _buildEvalCard(
-                        title: 'RAM (Bộ nhớ truy xuất ngẫu nhiên)',
-                        description: _formatRamDetails(controller.ramInfo),
-                        result: controller.ramEvalResult.value,
-                        icon: Icons.memory_rounded,
-                      ),
-
-                      SizedBox(height: 10.h),
-
-                      // ROM Test Card
-                      _buildEvalCard(
-                        title: 'ROM (Bộ nhớ lưu trữ thiết bị)',
-                        description: _formatRomDetails(controller.romInfo),
-                        result: controller.romEvalResult.value,
-                        icon: Icons.storage_rounded,
-                      ),
-                    ],
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
+                  child: Text(
+                    'hardware_evaluation'.tr,
+                    style: AppTextStyle.titleMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
 
-                SizedBox(height: 24.h),
+                // RAM Evaluation Card
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
+                  child: buildEvalCard(
+                    title: 'RAM',
+                    description: controller.ramInfo?['totalBytes'] != null
+                        ? '${(controller.ramInfo!['totalBytes'] / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB'
+                        : (controller.ramInfo?['totalGB'] != null
+                            ? '${controller.ramInfo!['totalGB']} GB'
+                            : 'Đang kiểm tra...'),
+                    result: controller.ramEvalResult.value,
+                    icon: Icons.memory_rounded,
+                  ),
+                ),
+
+                // ROM Evaluation Card
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
+                  child: buildEvalCard(
+                    title: 'Bộ nhớ trong (ROM)',
+                    description: controller.romInfo?['totalBytes'] != null
+                        ? '${(controller.romInfo!['totalBytes'] / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB'
+                        : (controller.isIOS ? 'Miễn đọc trực tiếp (iOS sandbox)' : 'Đang kiểm tra...'),
+                    result: controller.romEvalResult.value,
+                    icon: Icons.storage_rounded,
+                  ),
+                ),
+
+                // Wi-Fi Evaluation Card
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
+                  child: buildEvalCard(
+                    title: 'wifi_test'.tr,
+                    description: controller.wifiInfo == null
+                        ? 'loading'.tr
+                        : (!controller.isWifiEnabled
+                            ? 'wifi_desc_disabled'.tr
+                            : (controller.isWifiConnected
+                                ? 'wifi_desc_connected'.trParams({'ssid': controller.wifiSsid ?? 'Đã kết nối'})
+                                : 'wifi_desc_disconnected'.tr)),
+                    result: controller.wifiEvalResult.value,
+                    icon: Icons.wifi_rounded,
+                  ),
+                ),
+
+                // Bluetooth Evaluation Card
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
+                  child: buildEvalCard(
+                    title: 'bluetooth_test'.tr,
+                    description: controller.bluetoothInfo == null
+                        ? 'loading'.tr
+                        : (!controller.isBluetoothEnabled
+                            ? 'bluetooth_desc_disabled'.tr
+                            : (!controller.hasBluetoothPermission.value
+                                ? 'bluetooth_desc_no_perm'.tr
+                                : 'bluetooth_desc_scanned'.trParams({'count': '${controller.bluetoothDevicesCount}'}))),
+                    result: controller.btEvalResult.value,
+                    icon: Icons.bluetooth_rounded,
+                  ),
+                ),
+
+                SizedBox(height: 16.h),
 
                 // 3. Action Button
                 Padding(
@@ -104,7 +141,7 @@ class DiagnosticsHomePage extends GetView<DiagnosticsHomeController> {
                   child: ElevatedButton.icon(
                     onPressed: controller.isLoading.value
                         ? null
-                        : controller.runDiagnostics,
+                        : controller.goTofuntionCheck,
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
@@ -137,161 +174,5 @@ class DiagnosticsHomePage extends GetView<DiagnosticsHomeController> {
         }),
       ),
     );
-  }
-
-  Widget _buildEvalCard({
-    required String title,
-    required String description,
-    required EvalResult? result,
-    required IconData icon,
-  }) {
-    Color statusColor;
-    String statusText;
-    IconData statusIcon;
-
-    switch (result) {
-      case EvalResult.pass:
-        statusColor = AppColors.success;
-        statusText = 'Đạt chuẩn';
-        statusIcon = Icons.check_circle_rounded;
-        break;
-      case EvalResult.fail:
-        statusColor = AppColors.error;
-        statusText = 'Không đạt';
-        statusIcon = Icons.cancel_rounded;
-        break;
-      case EvalResult.skip:
-        statusColor = AppColors.info;
-        statusText = 'Miễn kiểm tra (iOS)';
-        statusIcon = Icons.info_rounded;
-        break;
-      case EvalResult.warning:
-        statusColor = AppColors.warning;
-        statusText = 'Cảnh báo';
-        statusIcon = Icons.warning_amber_rounded;
-        break;
-      case null:
-        statusColor = AppColors.textSecondaryLight;
-        statusText = 'Đang kiểm tra...';
-        statusIcon = Icons.hourglass_top_rounded;
-        break;
-    }
-
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16.r),
-        side: BorderSide(
-          color: statusColor.withValues(alpha: 0.3),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(16.w),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(10.r),
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12.r),
-              ),
-              child: Icon(icon, color: statusColor, size: 24.r),
-            ),
-            SizedBox(width: 14.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: AppTextStyle.titleSmall.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    description,
-                    style: AppTextStyle.bodySmall.copyWith(
-                      color: AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: 8.w),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Icon(statusIcon, color: statusColor, size: 20.r),
-                SizedBox(height: 2.h),
-                Text(
-                  statusText,
-                  style: AppTextStyle.caption.copyWith(
-                    color: statusColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatRamDetails(Map<String, dynamic>? ram) {
-    if (ram == null) return 'Chưa đo đạc';
-    final total = ram['totalBytes'];
-    final free = ram['freeBytes'];
-    final totalGB = ram['totalGB'];
-    final source = ram['source'];
-
-    if (source == 'ios_estimated' && totalGB != null) {
-      return 'Ước tính: $totalGB GB (iOS Architecture)';
-    }
-
-    if (total is num) {
-      final totalGb = (total / (1024 * 1024 * 1024))
-          .toStringAsFixed(2)
-          .replaceAll(RegExp(r'\.?0+$'), '');
-      final freeGb = free is num
-          ? (free / (1024 * 1024 * 1024))
-              .toStringAsFixed(2)
-              .replaceAll(RegExp(r'\.?0+$'), '')
-          : null;
-      return freeGb != null
-          ? 'Tổng: $totalGb GB • Khả dụng: $freeGb GB'
-          : 'Tổng: $totalGb GB';
-    }
-
-    return 'Nguồn: $source';
-  }
-
-  String _formatRomDetails(Map<String, dynamic>? rom) {
-    if (rom == null) return 'Chưa đo đạc';
-    final total = rom['totalBytes'];
-    final free = rom['freeBytes'];
-    final source = rom['source'];
-
-    if (source == 'ios_unavailable') {
-      return 'Bảo mật sandbox Apple (Bộ nhớ tiêu chuẩn)';
-    }
-
-    if (total is num) {
-      final totalGb = (total / (1024 * 1024 * 1024))
-          .toStringAsFixed(2)
-          .replaceAll(RegExp(r'\.?0+$'), '');
-      final freeGb = free is num
-          ? (free / (1024 * 1024 * 1024))
-              .toStringAsFixed(2)
-              .replaceAll(RegExp(r'\.?0+$'), '')
-          : null;
-      return freeGb != null
-          ? 'Tổng: $totalGb GB • Trống: $freeGb GB'
-          : 'Tổng: $totalGb GB';
-    }
-
-    return 'Nguồn: $source';
   }
 }

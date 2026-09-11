@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
+import android.net.wifi.WifiManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -21,6 +22,7 @@ class MainActivity : FlutterActivity() {
                     // Lines handling RAM and ROM diagnostics
                     "getRamInfo" -> result.success(getRamInfo())
                     "getRomInfo" -> result.success(getRomInfo())
+                    "isWifiEnabled" -> result.success(isWifiEnabled())
                     else -> result.notImplemented()
                 }
             }
@@ -54,6 +56,15 @@ class MainActivity : FlutterActivity() {
             mapOf("freeBytes" to freeBytes, "totalBytes" to totalBytes)
         } catch (e: Exception) {
             mapOf("freeBytes" to null, "totalBytes" to null)
+        }
+    }
+
+    private fun isWifiEnabled(): Boolean {
+        return try {
+            val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            wifiManager.isWifiEnabled
+        } catch (e: Exception) {
+            false
         }
     }
 }

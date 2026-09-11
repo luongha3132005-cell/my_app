@@ -94,9 +94,9 @@ void main() {
   group('Widget Tests', () {
     testWidgets('MyApp builds successfully and renders home screen', (tester) async {
       await tester.pumpWidget(const MyApp());
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
 
-      // Verify login UI elements are rendered
+      // Verify app UI elements are rendered
       expect(find.byType(MyApp), findsOneWidget);
     });
   });
