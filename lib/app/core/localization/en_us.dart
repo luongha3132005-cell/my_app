@@ -65,8 +65,28 @@ final Map<String, String> enUS = {
 
   // Diagnostics Module
   'diagnostics_title': 'Device Diagnostics',
-  'hardware_evaluation': 'Hardware Standard Evaluation',
-  'recheck_specs': 'Re-measure & Evaluate',
+  'function_check_title': 'Hardware & Function Check',
+  'start_function_check': 'Start Diagnostics',
+  'hardware_specs_overview': 'Hardware Specs Overview',
+  'hardware_evaluation': 'Standard Evaluation Results',
+  'recheck_specs': 'Re-run Tests',
+
+  // Checklist & Requirements
+  'pre_check_title': 'Pre-Check Requirements',
+  'pre_check_subtitle': 'To ensure test accuracy, please ensure the following features are ready:',
+  'req_wifi': 'Turn on Wi-Fi and connect to an Internet network',
+  'req_bluetooth': 'Turn on Bluetooth to scan for nearby devices',
+  'req_gps': 'Turn on device Location Services (GPS)',
+  'req_vibration': 'Hold the device in hand to feel vibration pulses',
+  'req_permission': 'Ready to tap "Allow" when prompted for location & Bluetooth permissions',
+  'start_diagnostics_now': 'Start Diagnostics',
+  'recheck_all': 'Re-run All Tests',
+  'testing_in_progress': 'Testing: @step...',
+
+  // 6 Diagnostic Tests
+  'ram_test': 'RAM Memory',
+  'rom_test': 'Internal Storage (ROM)',
+  'ios_sandbox_rom': 'Direct access restricted (iOS Security Sandbox)',
   'wifi_test': 'Wi-Fi Connection',
   'wifi_desc_connected': 'Connected: @ssid',
   'wifi_desc_disconnected': 'Wi-Fi is enabled but not connected to network',
@@ -83,5 +103,9 @@ final Map<String, String> enUS = {
   'vibrate_desc_unsupported': 'Vibration motor not detected',
   'vibrate_desc_pass': 'Vibration motor verified by user',
   'vibrate_desc_fail': 'Vibration count verification failed',
+  'vibrate_dialog_title': 'Vibration Test',
+  'vibrate_dialog_content': 'How many times did the phone vibrate?',
+  'vibrate_no_vibration': 'Did not vibrate',
+  'vibrate_count_times': '@count times',
 };
 

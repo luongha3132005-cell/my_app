@@ -65,8 +65,28 @@ final Map<String, String> viVN = {
 
   // Diagnostics Module
   'diagnostics_title': 'Kiểm định thiết bị',
-  'hardware_evaluation': 'Đánh giá tiêu chuẩn phần cứng',
-  'recheck_specs': 'Đo lại thông số máy',
+  'function_check_title': 'Kiểm tra phần cứng & chức năng',
+  'start_function_check': 'Bắt đầu kiểm tra',
+  'hardware_specs_overview': 'Tổng quan thông số phần cứng',
+  'hardware_evaluation': 'Kết quả đánh giá tiêu chuẩn',
+  'recheck_specs': 'Kiểm tra lại',
+
+  // Checklist & Requirements
+  'pre_check_title': 'Yêu cầu chuẩn bị trước khi kiểm tra',
+  'pre_check_subtitle': 'Để quá trình đo đạc đạt kết quả chính xác, vui lòng đảm bảo thiết bị đã sẵn sàng:',
+  'req_wifi': 'Bật Wi-Fi và kết nối vào một mạng Internet',
+  'req_bluetooth': 'Bật Bluetooth để quét tìm thiết bị xung quanh',
+  'req_gps': 'Bật dịch vụ định vị GPS của thiết bị',
+  'req_vibration': 'Cầm chắc máy trên tay để cảm nhận số lần rung',
+  'req_permission': 'Sẵn sàng bấm "Cho phép" khi hệ thống xin quyền vị trí & Bluetooth',
+  'start_diagnostics_now': 'Bắt đầu kiểm tra',
+  'recheck_all': 'Kiểm tra lại toàn bộ',
+  'testing_in_progress': 'Đang kiểm tra: @step...',
+
+  // 6 Diagnostic Tests
+  'ram_test': 'Bộ nhớ RAM',
+  'rom_test': 'Bộ nhớ trong (ROM)',
+  'ios_sandbox_rom': 'Miễn đọc trực tiếp (Sandbox bảo mật iOS)',
   'wifi_test': 'Kết nối Wi-Fi',
   'wifi_desc_connected': 'Đã kết nối: @ssid',
   'wifi_desc_disconnected': 'Wi-Fi đang bật nhưng chưa kết nối mạng',
@@ -83,5 +103,9 @@ final Map<String, String> viVN = {
   'vibrate_desc_unsupported': 'Thiết bị không hỗ trợ mô-tơ rung',
   'vibrate_desc_pass': 'Phần cứng rung hoạt động tốt (Đã xác nhận)',
   'vibrate_desc_fail': 'Số lần rung không khớp hoặc chưa kiểm tra',
+  'vibrate_dialog_title': 'Kiểm tra rung',
+  'vibrate_dialog_content': 'Máy vừa rung bao nhiêu lần?',
+  'vibrate_no_vibration': 'Không rung',
+  'vibrate_count_times': '@count lần',
 };
 

@@ -24,14 +24,17 @@ void main() {
       expect(result, EvalResult.pass);
     });
 
-    test('Wi-Fi enabled and connected even without SSID should return PASS', () {
-      final result = evaluator.evalWifi({
-        'enabled': true,
-        'connected': true,
-        'ssid': null,
-      });
-      expect(result, EvalResult.pass);
-    });
+    test(
+      'Wi-Fi enabled and connected even without SSID should return PASS',
+      () {
+        final result = evaluator.evalWifi({
+          'enabled': true,
+          'connected': true,
+          'ssid': null,
+        });
+        expect(result, EvalResult.pass);
+      },
+    );
 
     test('Wi-Fi enabled but not connected should return WARNING', () {
       final result = evaluator.evalWifi({
@@ -53,14 +56,17 @@ void main() {
       expect(result, EvalResult.skip);
     });
 
-    test('Bluetooth enabled, permission granted and scanOk should return PASS', () {
-      final result = evaluator.evalBluetooth({
-        'enabled': true,
-        'scanOk': true,
-        'hasScanPermission': true,
-      });
-      expect(result, EvalResult.pass);
-    });
+    test(
+      'Bluetooth enabled, permission granted and scanOk should return PASS',
+      () {
+        final result = evaluator.evalBluetooth({
+          'enabled': true,
+          'scanOk': true,
+          'hasScanPermission': true,
+        });
+        expect(result, EvalResult.pass);
+      },
+    );
 
     test('Bluetooth enabled but missing permission should return WARNING', () {
       final result = evaluator.evalBluetooth({
@@ -71,15 +77,18 @@ void main() {
       expect(result, EvalResult.warning);
     });
 
-    test('Bluetooth enabled with permission but scan failed should return FAIL', () {
-      final result = evaluator.evalBluetooth({
-        'enabled': true,
-        'scanOk': false,
-        'hasScanPermission': true,
-        'isMiui': false,
-      });
-      expect(result, EvalResult.fail);
-    });
+    test(
+      'Bluetooth enabled with permission but scan failed should return FAIL',
+      () {
+        final result = evaluator.evalBluetooth({
+          'enabled': true,
+          'scanOk': false,
+          'hasScanPermission': true,
+          'isMiui': false,
+        });
+        expect(result, EvalResult.fail);
+      },
+    );
 
     test('MIUI device with GPS off and scan failed should return WARNING', () {
       final result = evaluator.evalBluetooth({
@@ -114,34 +123,22 @@ void main() {
 
   group('RuleEvaluator - GPS Evaluation Tests', () {
     test('GPS service disabled should return SKIP', () {
-      final result = evaluator.evalGps({
-        'serviceOn': false,
-        'accuracyM': null,
-      });
+      final result = evaluator.evalGps({'serviceOn': false, 'accuracyM': null});
       expect(result, EvalResult.skip);
     });
 
     test('GPS service enabled but no accuracy should return SKIP', () {
-      final result = evaluator.evalGps({
-        'serviceOn': true,
-        'accuracyM': null,
-      });
+      final result = evaluator.evalGps({'serviceOn': true, 'accuracyM': null});
       expect(result, EvalResult.skip);
     });
 
     test('GPS accuracy <= 50m should return PASS', () {
-      final result = evaluator.evalGps({
-        'serviceOn': true,
-        'accuracyM': 12.5,
-      });
+      final result = evaluator.evalGps({'serviceOn': true, 'accuracyM': 12.5});
       expect(result, EvalResult.pass);
     });
 
     test('GPS accuracy > 50m should return FAIL', () {
-      final result = evaluator.evalGps({
-        'serviceOn': true,
-        'accuracyM': 68.0,
-      });
+      final result = evaluator.evalGps({'serviceOn': true, 'accuracyM': 68.0});
       expect(result, EvalResult.fail);
     });
   });
