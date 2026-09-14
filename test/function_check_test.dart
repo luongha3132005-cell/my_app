@@ -11,7 +11,7 @@ void main() {
         ruleEvaluator: const RuleEvaluator(),
       );
 
-      expect(controller.functionSteps.length, 6);
+      expect(controller.functionSteps.length, 10);
       expect(controller.functionSteps.map((s) => s.code).toList(), [
         'ram',
         'rom',
@@ -19,6 +19,10 @@ void main() {
         'bt',
         'gps',
         'vibrate',
+        'bio',
+        'mic',
+        'keys',
+        'camera',
       ]);
       expect(controller.hasStartedCheck.value, isFalse);
       expect(controller.isLoading.value, isFalse);
@@ -28,6 +32,10 @@ void main() {
       expect(controller.btEvalResult.value, isNull);
       expect(controller.gpsEvalResult.value, isNull);
       expect(controller.vibrateEvalResult.value, isNull);
+      expect(controller.bioEvalResult.value, isNull);
+      expect(controller.micEvalResult.value, isNull);
+      expect(controller.keysEvalResult.value, isNull);
+      expect(controller.cameraEvalResult.value, isNull);
     });
 
     test('runFunctionCheck does not run when hasStartedCheck is false', () async {

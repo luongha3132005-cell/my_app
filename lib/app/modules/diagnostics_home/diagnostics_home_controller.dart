@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:my_app/app/routes/app_routes.dart';
 import '../../core/localization/app_translations.dart';
+import '../../data/services/diagnostics/biometric_diagnostic.dart';
+import '../../data/services/diagnostics/camera_diagnostic.dart';
 import '../../data/services/diagnostics/device_os_diagnostic.dart';
 import '../../data/services/diagnostics/ram_rom_diagnostic.dart';
 import '../../data/services/rule_evaluator.dart';
@@ -12,15 +14,18 @@ class DiagnosticsHomeController extends GetxController {
   final DiagnosticsHomeRepository? repository;
   final RamRomDiagnostic _ramRomDiag;
   final DeviceOsDiagnostic _deviceOsDiag;
+  final BiometricDiagnostic _biometricDiag;
   final RuleEvaluator _ruleEvaluator;
 
   DiagnosticsHomeController({
     this.repository,
     RamRomDiagnostic? ramRomDiag,
     DeviceOsDiagnostic? deviceOsDiag,
+    BiometricDiagnostic? biometricDiag,
     RuleEvaluator? ruleEvaluator,
   }) : _ramRomDiag = ramRomDiag ?? const RamRomDiagnostic(),
        _deviceOsDiag = deviceOsDiag ?? DeviceOsDiagnostic(),
+       _biometricDiag = biometricDiag ?? BiometricDiagnostic(),
        _ruleEvaluator = ruleEvaluator ?? const RuleEvaluator();
 
   // ==================== REACTIVE STATE (Rx) ====================
@@ -42,12 +47,16 @@ class DiagnosticsHomeController extends GetxController {
   String get manufacturer => (osModel?['manufacturer'] as String?) ?? '';
   String get modelName => (osModel?['model'] as String?) ?? '';
   String get marketingName => (osModel?['marketingName'] as String?) ?? '';
+  String get deviceId => (osModel?['deviceId'] as String?) ?? '';
+  String get androidId => (osModel?['androidId'] as String?) ?? '';
   String get origin => (osModel?['origin'] as String?) ?? 'Chính hãng';
   bool get isSamsung => vendor.toLowerCase() == 'samsung';
   bool get isApple => vendor.toLowerCase() == 'apple' || isIOS;
 
   Map<String, dynamic>? get ramInfo => info['ram'] as Map<String, dynamic>?;
   Map<String, dynamic>? get romInfo => info['rom'] as Map<String, dynamic>?;
+  Map<String, dynamic>? get bioInfo => info['bio'] as Map<String, dynamic>?;
+  bool get isBioSupported => bioInfo?['supported'] as bool? ?? false;
 
   @override
   void onInit() {
@@ -74,6 +83,10 @@ class DiagnosticsHomeController extends GetxController {
         romInfo: rom,
       );
       info['osmodel'] = osData;
+
+      // 3. Đọc tính năng sinh trắc học (vân tay, Face ID...)
+      final bioData = await _biometricDiag.checkBiometrics();
+      info['bio'] = bioData;
     } catch (e) {
       debugPrint('Error fetching device info: $e');
     } finally {
@@ -108,4 +121,18 @@ class DiagnosticsHomeController extends GetxController {
 
   /// Giữ hàm runDiagnostics để tương thích nếu các widget cũ gọi refresh
   Future<void> runDiagnostics() => fetchDeviceInfo();
+
+  /// Mở nhanh màn hình kiểm tra Camera trước & sau (xin quyền và thẩm định)
+  Future<bool> openCameraTest() async {
+    try {
+      const cameraDiag = CameraDiagnostic();
+      final result = await cameraDiag.checkCamera();
+      return result['userConfirm'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Tên gọi cũ theo tài liệu yêu cầu
+  Future<bool> openCameraQuick() => openCameraTest();
 }

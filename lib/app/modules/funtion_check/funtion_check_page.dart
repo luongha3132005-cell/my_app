@@ -176,6 +176,64 @@ class FuntionCheckPage extends GetView<FuntionCheckController> {
                     result: controller.vibrateEvalResult.value,
                     icon: Icons.vibration_rounded,
                   ),
+                  SizedBox(height: 8.h),
+
+                  // 7. Biometrics Card (Cảm biến sinh trắc học)
+                  buildEvalCard(
+                    title: 'biometric_test'.tr,
+                    description: controller.bioInfo.value == null
+                        ? 'loading'.tr
+                        : (!controller.isBiometricSupported
+                            ? 'bio_desc_unsupported'.tr
+                            : (!controller.canCheckBiometrics
+                                ? 'bio_desc_not_enrolled'.tr
+                                : 'bio_desc_available'.tr)),
+                    result: controller.bioEvalResult.value,
+                    icon: Icons.fingerprint_rounded,
+                  ),
+                  SizedBox(height: 8.h),
+
+                  // 8. Microphone Card (Thu âm & Micro)
+                  buildEvalCard(
+                    title: 'mic_test'.tr,
+                    description: controller.micInfo.value == null
+                        ? 'loading'.tr
+                        : (!controller.isMicPermGranted
+                            ? 'mic_desc_no_perm'.tr
+                            : (controller.isMicConfirmed
+                                ? 'mic_desc_pass'.tr
+                                : 'mic_desc_fail'.tr)),
+                    result: controller.micEvalResult.value,
+                    icon: Icons.mic_rounded,
+                  ),
+                  SizedBox(height: 8.h),
+
+                  // 9. Physical Keys Card (Phím vật lý: Âm lượng & Nguồn)
+                  buildEvalCard(
+                    title: 'keys_test'.tr,
+                    description: controller.keysInfo.value == null
+                        ? 'keys_desc_pending'.tr
+                        : (controller.isVolUpOk && controller.isVolDownOk
+                            ? 'keys_desc_pass'.tr
+                            : 'keys_desc_fail'.tr),
+                    result: controller.keysEvalResult.value,
+                    icon: Icons.tune_rounded,
+                  ),
+                  SizedBox(height: 8.h),
+
+                  // 10. Camera Card (Camera trước & sau)
+                  buildEvalCard(
+                    title: 'camera_test'.tr,
+                    description: controller.cameraInfo.value == null
+                        ? 'camera_desc_pending'.tr
+                        : (controller.cameraInfo.value?['permission'] == false
+                            ? 'camera_desc_no_perm'.tr
+                            : (controller.isBackCameraOk && controller.isFrontCameraOk
+                                ? 'camera_desc_pass'.tr
+                                : 'camera_desc_fail'.tr)),
+                    result: controller.cameraEvalResult.value,
+                    icon: Icons.camera_alt_rounded,
+                  ),
 
                   SizedBox(height: 24.h),
 

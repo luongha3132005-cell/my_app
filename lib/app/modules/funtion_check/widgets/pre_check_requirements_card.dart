@@ -79,6 +79,26 @@ class PreCheckRequirementsCard extends StatelessWidget {
             text: 'req_vibration'.tr,
           ),
           _buildRequirementItem(
+            icon: Icons.fingerprint_rounded,
+            color: AppColors.primary,
+            text: 'req_biometric'.tr,
+          ),
+          _buildRequirementItem(
+            icon: Icons.mic_rounded,
+            color: AppColors.error,
+            text: 'req_microphone'.tr,
+          ),
+          _buildRequirementItem(
+            icon: Icons.tune_rounded,
+            color: AppColors.secondary,
+            text: 'req_keys'.tr,
+          ),
+          _buildRequirementItem(
+            icon: Icons.camera_alt_rounded,
+            color: AppColors.primary,
+            text: 'req_camera'.tr,
+          ),
+          _buildRequirementItem(
             icon: Icons.security_rounded,
             color: AppColors.success,
             text: 'req_permission'.tr,

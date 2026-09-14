@@ -25,6 +25,11 @@ dependencies:
   flutter_blue_plus: ^2.3.12
   geolocator: ^14.0.3
   vibration: ^3.2.1
+  local_auth: ^2.3.0
+  record: ^7.1.1
+  audioplayers: ^6.8.1
+  path_provider: ^2.1.6
+  camera: ^0.12.1
 
 dev_dependencies:
   flutter_test:

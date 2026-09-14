@@ -43,6 +43,13 @@ class PermissionPrecheckService {
       description: 'Quét và kiểm tra thiết bị Bluetooth xung quanh',
       required: false,
     ),
+    PermissionInfo(
+      permission: Permission.camera,
+      icon: Icons.camera_alt,
+      name: 'Camera',
+      description: 'Kiểm tra camera trước và sau',
+      required: true,
+    ),
   ];
 
   // ==================== WI-FI / LOCATION PERMISSIONS ====================
@@ -143,16 +150,41 @@ class PermissionPrecheckService {
     }
   }
 
+  // ==================== CAMERA PERMISSION ====================
+
+  /// Kiểm tra trạng thái cấp quyền Camera hiện tại
+  static Future<bool> checkCameraPermission() async {
+    try {
+      return (await Permission.camera.status).isGranted;
+    } catch (e) {
+      debugPrint('Error checking Camera permission: $e');
+      return false;
+    }
+  }
+
+  /// Yêu cầu cấp quyền Camera
+  static Future<bool> requestCameraPermission() async {
+    try {
+      final status = await Permission.camera.request();
+      return status.isGranted;
+    } catch (e) {
+      debugPrint('Error requesting Camera permission: $e');
+      return false;
+    }
+  }
+
   // ==================== COMBINED PRECHECK ====================
 
   /// Tiền kiểm tra và xin tất cả các quyền cần thiết cho quy trình chẩn đoán
   static Future<Map<String, bool>> precheckAllPermissions() async {
     final wifiGranted = await requestWifiPermission();
     final bluetoothGranted = await requestBluetoothPermission();
+    final cameraGranted = await requestCameraPermission();
 
     return {
       'wifi_location': wifiGranted,
       'bluetooth': bluetoothGranted,
+      'camera': cameraGranted,
     };
   }
 }

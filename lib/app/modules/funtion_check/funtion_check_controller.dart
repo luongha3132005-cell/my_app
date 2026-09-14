@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/localization/app_translations.dart';
+import '../../data/services/diagnostics/biometric_diagnostic.dart';
 import '../../data/services/diagnostics/bluetooth_diagnostic.dart';
+import '../../data/services/diagnostics/camera_diagnostic.dart';
 import '../../data/services/diagnostics/diag_step.dart';
 import '../../data/services/diagnostics/gps_diagnostic.dart';
+import '../../data/services/diagnostics/keys_diagnostic.dart';
+import '../../data/services/diagnostics/microphone_diagnostic.dart';
 import '../../data/services/diagnostics/ram_rom_diagnostic.dart';
 import '../../data/services/diagnostics/vibration_diagnostic.dart';
 import '../../data/services/diagnostics/wifi_diagnostic.dart';
 import '../../data/services/rule_evaluator.dart';
 
-/// Controller quản lý toàn bộ 6 bài kiểm tra phần cứng (RAM, ROM, Wi-Fi, Bluetooth, GPS, Rung)
+/// Controller quản lý toàn bộ 10 bài kiểm tra phần cứng (RAM, ROM, Wi-Fi, Bluetooth, GPS, Rung, Sinh trắc học, Micro, Phím vật lý, Camera)
 class FuntionCheckController extends GetxController {
   final RamRomDiagnostic _ramRomDiag;
   final WifiDiagnostic _wifiDiag;
   final BluetoothDiagnostic _bluetoothDiag;
   final GpsDiagnostic _gpsDiag;
   final VibrationDiagnostic _vibrationDiag;
+  final BiometricDiagnostic _biometricDiag;
+  final MicrophoneDiagnostic _microphoneDiag;
+  final KeysDiagnostic _keysDiag;
+  final CameraDiagnostic _cameraDiag;
   final RuleEvaluator _ruleEvaluator;
 
   FuntionCheckController({
@@ -24,12 +32,20 @@ class FuntionCheckController extends GetxController {
     BluetoothDiagnostic? bluetoothDiag,
     GpsDiagnostic? gpsDiag,
     VibrationDiagnostic? vibrationDiag,
+    BiometricDiagnostic? biometricDiag,
+    MicrophoneDiagnostic? microphoneDiag,
+    KeysDiagnostic? keysDiag,
+    CameraDiagnostic? cameraDiag,
     RuleEvaluator? ruleEvaluator,
   })  : _ramRomDiag = ramRomDiag ?? const RamRomDiagnostic(),
         _wifiDiag = wifiDiag ?? WifiDiagnostic(),
         _bluetoothDiag = bluetoothDiag ?? const BluetoothDiagnostic(),
         _gpsDiag = gpsDiag ?? const GpsDiagnostic(),
         _vibrationDiag = vibrationDiag ?? const VibrationDiagnostic(),
+        _biometricDiag = biometricDiag ?? BiometricDiagnostic(),
+        _microphoneDiag = microphoneDiag ?? const MicrophoneDiagnostic(),
+        _keysDiag = keysDiag ?? const KeysDiagnostic(),
+        _cameraDiag = cameraDiag ?? const CameraDiagnostic(),
         _ruleEvaluator = ruleEvaluator ?? const RuleEvaluator();
 
   // ==================== REACTIVE STATE (Rx) ====================
@@ -38,13 +54,17 @@ class FuntionCheckController extends GetxController {
   final currentStepTitle = ''.obs;
   final brandName = ''.obs;
 
-  // Kết quả đánh giá của 6 bài kiểm tra (Pass / Fail / Warning / Skip)
+  // Kết quả đánh giá của 10 bài kiểm tra (Pass / Fail / Warning / Skip)
   final ramEvalResult = Rx<EvalResult?>(null);
   final romEvalResult = Rx<EvalResult?>(null);
   final wifiEvalResult = Rx<EvalResult?>(null);
   final btEvalResult = Rx<EvalResult?>(null);
   final gpsEvalResult = Rx<EvalResult?>(null);
   final vibrateEvalResult = Rx<EvalResult?>(null);
+  final bioEvalResult = Rx<EvalResult?>(null);
+  final micEvalResult = Rx<EvalResult?>(null);
+  final keysEvalResult = Rx<EvalResult?>(null);
+  final cameraEvalResult = Rx<EvalResult?>(null);
 
   // Raw data info
   final ramInfo = Rx<Map<String, dynamic>?>(null);
@@ -53,6 +73,10 @@ class FuntionCheckController extends GetxController {
   final bluetoothInfo = Rx<Map<String, dynamic>?>(null);
   final gpsInfo = Rx<Map<String, dynamic>?>(null);
   final vibrateInfo = Rx<Map<String, dynamic>?>(null);
+  final bioInfo = Rx<Map<String, dynamic>?>(null);
+  final micInfo = Rx<Map<String, dynamic>?>(null);
+  final keysInfo = Rx<Map<String, dynamic>?>(null);
+  final cameraInfo = Rx<Map<String, dynamic>?>(null);
 
   // Quyền và trạng thái hệ thống
   final hasLocationPermission = false.obs;
@@ -74,7 +98,24 @@ class FuntionCheckController extends GetxController {
   bool get isVibrateSupported => vibrateInfo.value?['supported'] as bool? ?? true;
   bool get isVibrateConfirmed => vibrateInfo.value?['userConfirm'] as bool? ?? false;
 
-  // ==================== DANH SÁCH 6 BÀI KIỂM ĐỊNH ====================
+  bool get isBiometricSupported => bioInfo.value?['supported'] as bool? ?? false;
+  bool get canCheckBiometrics => bioInfo.value?['canCheck'] as bool? ?? false;
+  List<String> get availableBiometrics =>
+      (bioInfo.value?['availableBiometrics'] as List?)?.cast<String>() ?? [];
+
+  bool get isMicPermGranted => micInfo.value?['permission'] as bool? ?? false;
+  bool get isMicConfirmed => micInfo.value?['userConfirm'] as bool? ?? false;
+  bool get hasMicDetectedSound => micInfo.value?['hasDetectedSound'] as bool? ?? false;
+
+  bool get isVolUpOk => keysInfo.value?['volumeUp'] as bool? ?? false;
+  bool get isVolDownOk => keysInfo.value?['volumeDown'] as bool? ?? false;
+  bool get areKeysConfirmed => keysInfo.value?['userConfirm'] as bool? ?? false;
+
+  bool get isBackCameraOk => cameraInfo.value?['backCamera'] as bool? ?? false;
+  bool get isFrontCameraOk => cameraInfo.value?['frontCamera'] as bool? ?? false;
+  bool get isCameraConfirmed => cameraInfo.value?['userConfirm'] as bool? ?? false;
+
+  // ==================== DANH SÁCH 10 BÀI KIỂM ĐỊNH ====================
   late final List<DiagStep> functionSteps = [
     DiagStep(
       code: 'ram',
@@ -105,6 +146,26 @@ class FuntionCheckController extends GetxController {
       code: 'vibrate',
       title: 'vibrate_test'.tr,
       run: _checkVibration,
+    ),
+    DiagStep(
+      code: 'bio',
+      title: 'biometric_test'.tr,
+      run: _checkBiometrics,
+    ),
+    DiagStep(
+      code: 'mic',
+      title: 'mic_test'.tr,
+      run: _checkMicrophone,
+    ),
+    DiagStep(
+      code: 'keys',
+      title: 'keys_test'.tr,
+      run: _checkKeys,
+    ),
+    DiagStep(
+      code: 'camera',
+      title: 'camera_test'.tr,
+      run: _checkCamera,
     ),
   ];
 
@@ -186,6 +247,34 @@ class FuntionCheckController extends GetxController {
     final result = await _vibrationDiag.checkVibration();
     vibrateInfo.value = result;
     vibrateEvalResult.value = _ruleEvaluator.evalVibration(result);
+  }
+
+  /// 7. Kiểm tra cảm biến Sinh trắc học (Vân tay, Face ID...)
+  Future<void> _checkBiometrics() async {
+    final result = await _biometricDiag.checkBiometrics();
+    bioInfo.value = result;
+    bioEvalResult.value = _ruleEvaluator.evalBiometrics(result);
+  }
+
+  /// 8. Kiểm tra Microphone (Thu âm 5s, đo biên độ và phát lại để xác nhận)
+  Future<void> _checkMicrophone() async {
+    final result = await _microphoneDiag.checkMicrophone();
+    micInfo.value = result;
+    micEvalResult.value = _ruleEvaluator.evalMicrophone(result);
+  }
+
+  /// 9. Kiểm tra Phím vật lý (Tăng/Giảm âm lượng, Nguồn, Back)
+  Future<void> _checkKeys() async {
+    final result = await _keysDiag.checkKeys();
+    keysInfo.value = result;
+    keysEvalResult.value = _ruleEvaluator.evalKeys(result);
+  }
+
+  /// 10. Kiểm tra Camera trước & sau (so khớp hình chụp & cảm biến)
+  Future<void> _checkCamera() async {
+    final result = await _cameraDiag.checkCamera();
+    cameraInfo.value = result;
+    cameraEvalResult.value = _ruleEvaluator.evalCamera(result);
   }
 
   // ==================== UTILS ====================

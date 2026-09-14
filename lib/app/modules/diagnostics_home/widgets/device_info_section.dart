@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_style.dart';
 
@@ -13,6 +14,7 @@ class DeviceInfoSection extends StatelessWidget {
     this.osVersion,
     this.ramInfo,
     this.romInfo,
+    this.bioInfo,
     this.origin,
     this.marketingName,
     this.isEligibleTradeIn = true,
@@ -25,6 +27,7 @@ class DeviceInfoSection extends StatelessWidget {
   final String? osVersion;
   final Map<String, dynamic>? ramInfo;
   final Map<String, dynamic>? romInfo;
+  final Map<String, dynamic>? bioInfo;
   final String? origin;
   final String? marketingName;
   final bool isEligibleTradeIn;
@@ -254,6 +257,19 @@ class DeviceInfoSection extends StatelessWidget {
                   ],
                 ),
 
+                // Capability Chip: Cảm biến Sinh trắc học (Vân tay / Face ID)
+                if (bioInfo != null) ...[
+                  const SizedBox(height: 12),
+                  _CapabilityChip(
+                    icon: Icons.fingerprint_rounded,
+                    label: 'bio_chip_label'.tr,
+                    sublabel: (bioInfo?['supported'] == true)
+                        ? 'bio_chip_available'.tr
+                        : 'bio_chip_unavailable'.tr,
+                    isEnabled: bioInfo?['supported'] == true,
+                  ),
+                ],
+
                 const SizedBox(height: 16),
 
                 // Trade-In Subsidy Incentive Strip
@@ -368,6 +384,74 @@ class _SpecPill extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Thẻ Capability Chip hiển thị trạng thái hỗ trợ cảm biến (Sinh trắc học / Vân tay / Face ID)
+class _CapabilityChip extends StatelessWidget {
+  const _CapabilityChip({
+    required this.icon,
+    required this.label,
+    required this.sublabel,
+    required this.isEnabled,
+  });
+
+  final IconData icon;
+  final String label;
+  final String sublabel;
+  final bool isEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeColor = isEnabled ? AppColors.success : AppColors.textSecondaryDark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isEnabled
+            ? AppColors.success.withValues(alpha: 0.12)
+            : AppColors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isEnabled
+              ? AppColors.success.withValues(alpha: 0.3)
+              : AppColors.white.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: activeColor),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.white,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            width: 4,
+            height: 4,
+            decoration: const BoxDecoration(
+              color: AppColors.white70,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            sublabel,
+            style: AppTextStyles.caption.copyWith(
+              color: activeColor,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),

@@ -6,12 +6,17 @@ import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.net.wifi.WifiManager
-import io.flutter.embedding.android.FlutterActivity
+import android.provider.Settings
+import android.view.KeyEvent
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private val CHANNEL = "com.fidobox/diagnostics"
+    private val KEY_EVENT_CHANNEL = "com.fidobox/diagnostics_keyevents"
+    private var keyEventSink: EventChannel.EventSink? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -23,9 +28,40 @@ class MainActivity : FlutterActivity() {
                     "getRamInfo" -> result.success(getRamInfo())
                     "getRomInfo" -> result.success(getRomInfo())
                     "isWifiEnabled" -> result.success(isWifiEnabled())
+                    "getAndroidId" -> result.success(getAndroidId())
                     else -> result.notImplemented()
                 }
             }
+
+        // EventChannel phát trực tiếp sự kiện phím vật lý lên Flutter (Layer 1)
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, KEY_EVENT_CHANNEL)
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    keyEventSink = events
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    keyEventSink = null
+                }
+            })
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Bắt sự kiện phím vật lý khi nhấn xuống (ACTION_DOWN)
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_VOLUME_UP -> {
+                    keyEventSink?.success(24)
+                }
+                KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                    keyEventSink?.success(25)
+                }
+                KeyEvent.KEYCODE_BACK -> {
+                    keyEventSink?.success(4)
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     // ===== Helpers RAM / ROM =====
@@ -65,6 +101,14 @@ class MainActivity : FlutterActivity() {
             wifiManager.isWifiEnabled
         } catch (e: Exception) {
             false
+        }
+    }
+
+    private fun getAndroidId(): String {
+        return try {
+            Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: "unknown"
+        } catch (e: Exception) {
+            "unknown"
         }
     }
 }

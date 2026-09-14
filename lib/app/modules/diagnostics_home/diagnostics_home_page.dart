@@ -52,6 +52,7 @@ class DiagnosticsHomePage extends GetView<DiagnosticsHomeController> {
                   osVersion: osVer,
                   ramInfo: controller.ramInfo,
                   romInfo: controller.romInfo,
+                  bioInfo: controller.bioInfo,
                   origin: controller.origin,
                   marketingName: controller.marketingName,
                 ),

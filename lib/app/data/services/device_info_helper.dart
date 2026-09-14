@@ -259,6 +259,42 @@ class DeviceInfoHelper {
     return machine;
   }
 
+  // ==================== DEVICE ID ====================
+  /// Lấy thông tin định danh máy chi tiết (Build ID, Android ID / IDFV, Hardware Device)
+  static Future<Map<String, dynamic>> getDeviceIdInfo() async {
+    try {
+      if (Platform.isAndroid) {
+        final androidInfo = await _deviceInfo.androidInfo;
+        String androidId = 'unknown';
+        try {
+          androidId = await _channel.invokeMethod<String>('getAndroidId') ?? 'unknown';
+        } catch (_) {}
+
+        return {
+          'deviceId': androidInfo.id, // Build ID (ví dụ: SP1A.210812.016)
+          'androidId': androidId, // Mã ANDROID_ID định danh duy nhất (ví dụ: a83d4c2dc16f3a8e)
+          'hardwareDevice': androidInfo.device, // Mã bo mạch (ví dụ: d2s)
+          'fingerprint': androidInfo.fingerprint,
+        };
+      } else if (Platform.isIOS) {
+        final iosInfo = await _deviceInfo.iosInfo;
+        final idfv = iosInfo.identifierForVendor ?? 'unknown';
+        return {
+          'deviceId': idfv,
+          'identifierForVendor': idfv,
+          'hardwareDevice': iosInfo.utsname.machine,
+        };
+      }
+    } catch (_) {}
+    return {'deviceId': 'unknown'};
+  }
+
+  /// Lấy mã định danh thiết bị duy nhất
+  static Future<String> getDeviceId() async {
+    final info = await getDeviceIdInfo();
+    return (info['androidId'] ?? info['deviceId'] ?? 'unknown').toString();
+  }
+
   // ==================== PLATFORM HELPERS ====================
   static bool get isIOS => Platform.isIOS;
   static bool get isAndroid => Platform.isAndroid;

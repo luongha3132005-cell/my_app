@@ -3,43 +3,63 @@
 class DeviceNameMapper {
   DeviceNameMapper._();
 
-  /// Lấy tên thương mại từ mã model và hãng sản xuất
-  static String getMarketingName(String model, String brand) {
-    final modelUpper = model.toUpperCase();
-    final brandUpper = brand.toUpperCase();
+  /// Lấy tên thương mại từ mã model và hãng sản xuất (hỗ trợ tự nhận diện theo prefix phần cứng)
+  static String getMarketingName(String model, String brand, [String? manufacturer]) {
+    final modelUpper = model.toUpperCase().trim();
+    final brandUpper = brand.toUpperCase().trim();
+    final mfgUpper = (manufacturer ?? '').toUpperCase().trim();
 
-    // Samsung devices
-    if (brandUpper.contains('SAMSUNG')) {
+    // Helper kiểm tra thương hiệu hoặc nhà sản xuất
+    bool isBrand(String name) => brandUpper.contains(name) || mfgUpper.contains(name);
+
+    // 1. Samsung: Bắt đầu bằng SM-, GT-, SCH- hoặc thương hiệu là Samsung
+    if (isBrand('SAMSUNG') ||
+        modelUpper.startsWith('SM-') ||
+        modelUpper.startsWith('GT-') ||
+        modelUpper.startsWith('SCH-')) {
       return _getSamsungName(modelUpper);
     }
 
-    // Xiaomi devices
-    if (brandUpper.contains('XIAOMI')) {
-      return _getXiaomiName(modelUpper);
-    }
-
-    // Oppo devices
-    if (brandUpper.contains('OPPO')) {
-      return _getOppoName(modelUpper);
-    }
-
-    // Vivo devices
-    if (brandUpper.contains('VIVO')) {
-      return _getVivoName(modelUpper);
-    }
-
-    // Google Pixel
-    if (brandUpper.contains('GOOGLE')) {
-      return _getPixelName(modelUpper);
-    }
-
-    // Apple (iOS)
-    if (brandUpper.contains('APPLE') || modelUpper.contains('IPHONE')) {
+    // 2. Apple (iOS): Chứa IPHONE, IPAD hoặc thương hiệu là Apple
+    if (isBrand('APPLE') || modelUpper.contains('IPHONE') || modelUpper.contains('IPAD')) {
       return _getIPhoneName(modelUpper);
     }
 
+    // 3. Google Pixel: Model chứa PIXEL hoặc thương hiệu là Google
+    if (isBrand('GOOGLE') || modelUpper.startsWith('PIXEL')) {
+      return _getPixelName(modelUpper);
+    }
+
+    // 4. Xiaomi / Redmi / POCO: Tiền tố 22/23/24/M2 hoặc thương hiệu là Xiaomi/Redmi/Poco
+    if (isBrand('XIAOMI') ||
+        isBrand('REDMI') ||
+        isBrand('POCO') ||
+        RegExp(r'^(2\d{3}|M2|2\d{7})').hasMatch(modelUpper) ||
+        modelUpper.contains('POCO') ||
+        modelUpper.contains('REDMI')) {
+      return _getXiaomiName(modelUpper);
+    }
+
+    // 5. Oppo / Realme: Tiền tố CPH, PGE, PE hoặc thương hiệu là Oppo/Realme
+    if (isBrand('OPPO') ||
+        isBrand('REALME') ||
+        modelUpper.startsWith('CPH') ||
+        modelUpper.startsWith('PGE') ||
+        modelUpper.startsWith('PE')) {
+      return _getOppoName(modelUpper);
+    }
+
+    // 6. Vivo / iQOO: Tiền tố V2xxx, V1xxx, PDxxx hoặc thương hiệu là Vivo/iQOO
+    if (isBrand('VIVO') ||
+        isBrand('IQOO') ||
+        RegExp(r'^V\d{4}').hasMatch(modelUpper) ||
+        RegExp(r'^PD\d{4}').hasMatch(modelUpper)) {
+      return _getVivoName(modelUpper);
+    }
+
     // Mặc định: kết hợp Brand và Model
-    return '$brand $model'.trim();
+    final effectiveBrand = brand.isNotEmpty ? brand : (manufacturer ?? '');
+    return '$effectiveBrand $model'.trim();
   }
 
   static String _getSamsungName(String model) {
@@ -82,6 +102,10 @@ class DeviceNameMapper {
     // Galaxy Note Series
     if (model.contains('SM-N986')) return 'Galaxy Note20 Ultra';
     if (model.contains('SM-N981')) return 'Galaxy Note20';
+    if (model.contains('SM-N976')) return 'Galaxy Note10+ 5G';
+    if (model.contains('SM-N975')) return 'Galaxy Note10+';
+    if (model.contains('SM-N970')) return 'Galaxy Note10';
+    if (model.contains('SM-N960')) return 'Galaxy Note9';
 
     return 'Samsung $model';
   }
@@ -128,6 +152,7 @@ class DeviceNameMapper {
     if (model.contains('V2231')) return 'Vivo V27 Pro';
     if (model.contains('V2254')) return 'Vivo V25 Pro';
     if (model.contains('V2207')) return 'Vivo Y35';
+    if (model.contains('V2143') || model.contains('V2135')) return 'Vivo T1x';
 
     return 'Vivo $model';
   }

@@ -1,3 +1,5 @@
+import '../model/device_profile.dart';
+
 /// Kết quả đánh giá kiểm định phần cứng
 enum EvalResult {
   pass,
@@ -13,10 +15,12 @@ enum EvalResult {
 
 /// Rule Evaluator - Kiểm tra & đánh giá thông số phần cứng theo tiêu chuẩn
 class RuleEvaluator {
-  const RuleEvaluator();
+  final DeviceProfile? defaultProfile;
 
-  /// Đánh giá kết quả kiểm định theo mã kiểm tra (RAM, ROM...)
-  EvalResult evaluate(String testKey, Map<String, dynamic> payload) {
+  const RuleEvaluator({this.defaultProfile});
+
+  /// Đánh giá kết quả kiểm định theo mã kiểm tra (RAM, ROM, Biometrics...)
+  EvalResult evaluate(String testKey, Map<String, dynamic> payload, {DeviceProfile? profile}) {
     switch (testKey.toLowerCase()) {
       case 'ram':
         return _evalRam(payload);
@@ -32,6 +36,21 @@ class RuleEvaluator {
       case 'vibrate':
       case 'vibration':
         return _evalVibration(payload);
+      case 'bio':
+      case 'biometric':
+      case 'biometrics':
+        return _evalBio(payload, profile: profile ?? defaultProfile);
+      case 'mic':
+      case 'microphone':
+        return _evalMicrophone(payload);
+      case 'keys':
+      case 'key':
+      case 'buttons':
+      case 'volume':
+        return _evalKeys(payload);
+      case 'camera':
+      case 'cam':
+        return _evalCamera(payload);
       default:
         return EvalResult.skip;
     }
@@ -54,6 +73,19 @@ class RuleEvaluator {
 
   /// Public wrapper đánh giá Rung
   EvalResult evalVibration(Map<String, dynamic> payload) => _evalVibration(payload);
+
+  /// Public wrapper đánh giá Sinh trắc học (Biometrics)
+  EvalResult evalBiometrics(Map<String, dynamic> payload, {DeviceProfile? profile}) =>
+      _evalBio(payload, profile: profile ?? defaultProfile);
+
+  /// Public wrapper đánh giá Microphone
+  EvalResult evalMicrophone(Map<String, dynamic> payload) => _evalMicrophone(payload);
+
+  /// Public wrapper đánh giá Phím vật lý (Tăng/Giảm âm lượng)
+  EvalResult evalKeys(Map<String, dynamic> payload) => _evalKeys(payload);
+
+  /// Public wrapper đánh giá Camera (Trước & Sau)
+  EvalResult evalCamera(Map<String, dynamic> payload) => _evalCamera(payload);
 
   /// Đánh giá RAM
   /// - iOS: Có thể là estimated value -> vẫn PASS
@@ -204,6 +236,99 @@ class RuleEvaluator {
       return EvalResult.pass;
     }
 
+    return EvalResult.fail;
+  }
+
+  /// Đánh giá Sinh trắc học (Vân tay, Face ID...)
+  /// - canCheck: Thiết bị có cảm biến VÀ người dùng đã cài đặt vân tay/mặt trong Cài đặt máy
+  /// - supported: Phần cứng máy có hỗ trợ công nghệ sinh trắc học không
+  /// - profile: Cấu hình đời máy (có bắt buộc tính năng sinh trắc học không)
+  EvalResult _evalBio(Map<String, dynamic> p, {DeviceProfile? profile}) {
+    // 1. Kiểm tra xem người dùng đã cài mã PIN / bảo mật trên máy chưa
+    final canCheck = p['canCheck'] == true;
+    if (!canCheck) return EvalResult.skip; // Nếu chưa thiết lập bảo mật màn hình -> Bỏ qua
+
+    final required = profile?.bio ?? false; // Đời máy này có bắt buộc phải có sinh trắc học không
+    final supported = p['supported'] == true; // Máy thực tế có hỗ trợ phần cứng không
+
+    // 2. Nếu profile không bắt buộc VÀ máy không hỗ trợ -> Skip (vd: máy cỏ, máy cổ)
+    if (!required && !supported) return EvalResult.skip;
+
+    // 3. Nếu máy thuộc đời bắt buộc phải có sinh trắc học mà phần cứng lại không hỗ trợ (hỏng cảm biến) -> Fail
+    if (required && !supported) return EvalResult.fail;
+
+    // 4. Nếu phần cứng hỗ trợ bình thường -> Pass
+    return supported ? EvalResult.pass : EvalResult.skip;
+  }
+
+  /// Đánh giá Microphone (thu âm, đo biên độ sóng âm và xác nhận từ người dùng)
+  /// - permission: Đã được cấp quyền Microphone
+  /// - userConfirm: Người dùng xác nhận có nghe rõ âm thanh phát lại
+  EvalResult _evalMicrophone(Map<String, dynamic> p) {
+    final permission = p['permission'] as bool? ?? false;
+    final userConfirm = p['userConfirm'] as bool? ?? false;
+
+    // Nếu không được cấp quyền microphone -> Warning / Skip
+    if (!permission) {
+      return EvalResult.warning;
+    }
+
+    // Nếu người dùng xác nhận nghe rõ âm thanh vừa thu -> Pass
+    if (userConfirm) {
+      return EvalResult.pass;
+    }
+
+    // Nếu người dùng chọn "Không nghe thấy" -> Fail
+    return EvalResult.fail;
+  }
+
+  /// Đánh giá phím vật lý (Tăng/Giảm âm lượng, Nguồn, Back)
+  /// - volumeUp: Trạng thái phím Tăng âm lượng
+  /// - volumeDown: Trạng thái phím Giảm âm lượng
+  /// - Điều kiện ĐẠT: Bắt buộc cả 2 phím Vol+ và Vol- đều hoạt động
+  EvalResult _evalKeys(Map<String, dynamic> p) {
+    if (p.isEmpty) {
+      return EvalResult.skip;
+    }
+
+    final volUp = p['volumeUp'] as bool? ?? false;
+    final volDown = p['volumeDown'] as bool? ?? false;
+
+    // Bắt buộc cả 2 phím âm lượng đều phải hoạt động
+    if (volUp && volDown) {
+      return EvalResult.pass;
+    }
+
+    return EvalResult.fail;
+  }
+
+  /// Đánh giá Camera trước & sau (so khớp hình chụp và độ phản hồi cảm biến)
+  /// - permission: Đã được cấp quyền Camera hay chưa. Nếu chưa cấp -> SKIP (không phải lỗi phần cứng)
+  /// - backCamera: Camera sau hoạt động tốt, hình chụp khớp với thực tế
+  /// - frontCamera: Camera trước hoạt động tốt, hình chụp khớp với thực tế
+  /// - noCameras: Thiết bị không có camera nào -> SKIP
+  EvalResult _evalCamera(Map<String, dynamic> p) {
+    if (p.isEmpty) {
+      return EvalResult.skip;
+    }
+
+    final permission = p['permission'] as bool? ?? false;
+    final noCameras = p['noCameras'] as bool? ?? false;
+
+    // Nếu bị từ chối quyền Camera hoặc máy không có camera -> SKIP
+    if (!permission || noCameras) {
+      return EvalResult.skip;
+    }
+
+    final backCamera = p['backCamera'] as bool? ?? false;
+    final frontCamera = p['frontCamera'] as bool? ?? false;
+
+    // Cả 2 camera trước và sau đều phải hoạt động tốt và hình chụp khớp
+    if (backCamera && frontCamera) {
+      return EvalResult.pass;
+    }
+
+    // Nếu 1 trong 2 camera bị hỏng hoặc ảnh chụp không khớp -> FAIL
     return EvalResult.fail;
   }
 }

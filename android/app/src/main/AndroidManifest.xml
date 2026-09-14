@@ -17,6 +17,19 @@
     <!-- Hardware Vibration permission -->
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- Biometrics permission -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <!-- Microphone & Audio recording permissions -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- Camera permissions & features for diagnostics -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
+
     <application
         android:label="my_app"
         android:name="${applicationName}"
